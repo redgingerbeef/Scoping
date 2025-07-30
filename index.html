@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Step Form Summary</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; }
+        .step { display: none; margin-bottom: 2rem; }
+        .step.active { display: block; }
+        input[type="text"], select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; font-size: 1rem; }
+        button {
+            padding: 0.75rem 1.5rem;
+            margin-right: 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px; /* Rounded corners */
+            background-color: #007bff; /* Primary blue */
+            color: white;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        button:active {
+            transform: translateY(0); /* Press effect */
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+        pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; word-wrap: break-word; border-radius: 8px; }
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding: 0 5%; /* Adjust padding to center or spread as needed */
+            font-size: 0.9em;
+            color: #888;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden; /* Ensures border-radius applies to children */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .progress-step {
+            flex-grow: 1;
+            text-align: center;
+            padding: 10px 0; /* Vertical padding, horizontal is 0 */
+            border-bottom: 3px solid #ccc; /* Thicker border for progress */
+            position: relative;
+            transition: all 0.3s ease;
+            white-space: nowrap; /* Ensure text stays on one line */
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+        }
+        .progress-step.active {
+            color: #007bff;
+            border-color: #007bff;
+            font-weight: bold;
+        }
+        .progress-step.completed {
+            color: #28a745; /* Green for completed */
+            border-color: #28a745;
+        }
+        /* Line between steps */
+        .progress-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -1.5px; /* Overlap with next step's border */
+            width: 3px; /* Width of the connecting line */
+            height: 3px; /* Height of the connecting line */
+            background: #ccc;
+            transform: translateY(-50%);
+            z-index: 1; /* Ensure it's behind the step text */
+        }
+        .progress-step.active:not(:last-child)::after,
+        .progress-step.completed:not(:last-child)::after {
+            background: #007bff; /* Blue for active/completed connecting line */
+        }
+        .dehu-item-wrapper, .ceiling-item-wrapper, .after-hours-item-wrapper, .floor-item-wrapper, .wall-item-wrapper, .finish-carpentry-item-wrapper, .biowash-extraction-item-wrapper {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #f9f9f9;
+            border-radius: 8px; /* Rounded corners for dynamic items */
+        }
+        .dehu-item-wrapper button, .ceiling-item-wrapper button, .after-hours-item-wrapper button, .floor-item-wrapper button, .wall-item-wrapper button, .finish-carpentry-item-wrapper button, .biowash-extraction-item-wrapper button {
+            margin-top: 0.5rem;
+            background-color: #dc3545; /* Red for remove buttons */
+        }
+        .dehu-item-wrapper button:hover, .ceiling-item-wrapper button:hover, .after-hours-item-wrapper button:hover, .floor-item-wrapper button:hover, .wall-item-wrapper button:hover, .finish-carpentry-item-wrapper button:hover, .biowash-extraction-item-wrapper button:hover {
+            background-color: #c82333;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        h3 {
+            color: #555;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .progress-indicator {
+                padding: 0 1%; /* Reduce overall padding for the container */
+            }
+            .progress-step {
+                font-size: 0.65em; /* Significantly reduce font size */
+                padding: 8px 2px; /* Reduce horizontal padding */
+            }
+        }
+        @media (max-width: 480px) { /* Even smaller screens */
+            .progress-step {
+                font-size: 0.55em; /* Further reduce font size */
+                padding: 6px 1px; /* Minimal padding */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-indicator" id="progress-indicator">
+        <div class="progress-step" id="progress-step-1">Client</div>
+        <div class="progress-step" id="progress-step-2">Travel</div>
+        <div class="progress-step" id="progress-step-3">Debris</div>
+        <div class="progress-step" id="progress-step-4">Room</div>
+        <div class="progress-step" id="progress-step-5">Equipment</div>
+        <div class="progress-step" id="progress-step-6">Asbestos</div>
+        <div class="progress-step" id="progress-step-7">After Hours</div>
+        <div class="progress-step" id="progress-step-8">Ceiling</div>
+        <div class="progress-step" id="progress-step-9">Floors</div>
+        <div class="progress-step" id="progress-step-10">Walls</div>
+        <div class="progress-step" id="progress-step-11">Finish Carpentry</div>
+        <div class="progress-step" id="progress-step-12">Biowash/Extraction</div>
+        <div class="progress-step" id="progress-step-13">Summary</div>
+    </div>
+
+    <div id="step-1" class="step active">
+        <h2>Client's Name</h2>
+        <label for="client-name">Client Name:</label>
+        <input type="text" id="client-name" placeholder="Enter client's name">
+        <button id="next-step-1">Next</button>
+    </div>
+
+    <div id="step-2" class="step">
+        <h2>Travel</h2>
+        <label for="travel-details">How many trips for how many people?</label>
+        <input type="text" id="travel-details" placeholder="e.g. 2 trips for 3 people">
+        <label for="travel-km">Kilometers from office</label>
+        <input type="text" id="travel-km" placeholder="e.g. 35 km">
+        <button id="prev-step-2">Back</button>
+        <button id="next-step-2">Next</button>
+    </div>
+
+    <div id="step-3" class="step">
+        <h2>Debris Disposal</h2>
+        <label for="debris-disposal">Select disposal type:</label>
+        <select id="debris-disposal">
+            <option value="Small/Pickup Truck (DMO PU)">Small/Pickup Truck (DMO PU)</option>
+            <option value="Medium/Trailer (DMO DTRLR)">Medium/Trailer (DMO DTRUCK)</option>
+            <option value="Large/Dump Truck (DMO DTRUCK)">Large/Dump Truck (DMO DTRUCK)</option>
+        </select>
+        <label for="debris-quantity">Quantity</label>
+        <input type="text" id="debris-quantity" placeholder="Enter quantity">
+        <button id="prev-step-3">Back</button>
+        <button id="next-step-3">Next</button>
+    </div>
+
+    <div id="step-4" class="step">
+        <h2>Room Name</h2>
+        <label for="room-name">Room Name:</label>
+        <input type="text" id="room-name" placeholder="Enter the room name">
+        <button id="prev-step-4">Back</button>
+        <button id="next-step-4">Next</button>
+    </div>
+
+    <div id="step-5" class="step">
+        <h2>Equipment</h2>
+        <div id="dehu-container">
+            <h3>Dehumidifiers</h3>
+        </div>
+        <button id="add-dehumidifier">Add More Dehumidifiers</button>
+        <h3>Air Movers</h3>
+        <label for="air-movers">Air Movers:</label>
+        <input type="text" id="air-movers" placeholder="How many air movers for how many days">
+        <button id="prev-step-5">Back</button>
+        <button id="next-step-5">Next</button>
+    </div>
+
+    <div id="step-6" class="step">
+        <h2>Asbestos Testing</h2>
+        <label for="asbestos-samples">Asbestos test per sample (HMR ASBTS)</label>
+        <input type="text" id="asbestos-samples" placeholder="Enter number of samples">
+        <button id="prev-step-6">Back</button>
+        <button id="next-step-6">Next</button>
+    </div>
+
+    <div id="step-7" class="step">
+        <h2>After Hours</h2>
+        <div id="after-hours-items-container"></div>
+        <button id="add-after-hours-line-item">Add More Line Items</button>
+        <br><br>
+        <button id="prev-step-7">Back</button>
+        <button id="next-step-7">Next</button>
+    </div>
+
+    <div id="step-8" class="step">
+        <h2>Ceiling</h2>
+        <div id="ceiling-items-container"></div>
+        <button id="add-ceiling-line-item">Add More Line Items</button>
+        <br><br>
+        <button id="prev-step-8">Back</button>
+        <button id="next-step-8">Next</button>
+    </div>
+
+    <div id="step-9" class="step">
+        <h2>Floors</h2>
+        <div id="floor-items-container"></div>
+        <button id="add-floor-line-item">Add More Line Items</button>
+        <br><br>
+        <button id="prev-step-9">Back</button>
+        <button id="next-step-9">Next</button>
+    </div>
+
+    <div id="step-10" class="step">
+        <h2>Walls</h2>
+        <div id="wall-items-container"></div>
+        <button id="add-wall-line-item">Add More Line Items</button>
+        <br><br>
+        <button id="prev-step-10">Back</button>
+        <button id="next-step-10">Next</button>
+    </div>
+
+    <div id="step-11" class="step">
+        <h2>Finish Carpentry</h2>
+        <div id="finish-carpentry-items-container"></div>
+        <button id="add-finish-carpentry-line-item">Add More Line Items</button>
+        <br><br>
+        <button id="prev-step-11">Back</button>
+        <button id="next-step-11">Next</button>
+    </div>
+
+    <div id="step-12" class="step">
+        <h2>Biowash/Extraction</h2>
+        <div id="biowash-extraction-items-container"></div>
+        <button id="add-biowash-extraction-line-item">Add More Line Items</button>
+        <br><br>
+        <button id="prev-step-12">Back</button>
+        <button id="show-summary">Next</button>
+    </div>
+
+    <div id="step-13" class="step">
+        <h2>Summary</h2>
+        <pre id="summary-output"></pre>
+        <button id="copy-summary">Copy to Clipboard</button>
+        <button id="download-summary">Download as .txt</button>
+        <button id="prev-step-13">Back</button>
+    </div>
+
+    <script>
+        let dehuCount = 0;
+        let ceilingLineItemCount = 0;
+        let afterHoursLineItemCount = 0;
+        let floorLineItemCount = 0;
+        let wallLineItemCount = 0;
+        let finishCarpentryLineItemCount = 0;
+        let biowashExtractionLineItemCount = 0;
+        let currentStepNum = 1;
+
+        // Array of item codes that should use SQFT as the primary input label
+        const sqftItems = [
+            "WTR GRMBA", "WTR GRMB", "WTR BARRA", "WTR PROTA", "WTR DRYWA", "WTR DRYWSA", "WTR DRYWGA",
+            "WTR INSA", "WTR INSS", "WTR PNLA", "WTR PNLSA", "WTR EXTA", "WTR EXTSA", "WTR EXTHA",
+            "WTR EXTHS", "WTR EXTWPA", "WTR FCCA", "WTR FCCSA", "WTR PADA", "WTR PASDA", "WTR FCCGDA",
+            "WTR FCCGDSA", "WTR TILA", "WTR TILSA", "WTR FCV", "WTR FCVSA", "WTR FCVUVA", "WTR FCVUVSA",
+            "WTR FCVTA", "WTR FCVTSA", "WTR FCWLA", "WTR FCWLSA", "WTR FCWA", "WTR FCWSA", "WTR LIFTA",
+            "WTR ULAYA", "WTR ULAYSA",
+            "WTR BARR", "WTR PROT", // Included as per user's list, assuming they are codes for existing options.
+            "WTR DRYW", "WTR DRYWS", "WTR DRYWG", "WTR INS", "WTR PNL", "WTR PNLS", "WTR EXT",
+            "WTR EXTS", "WTR EXTH", "WTR EXTWP", "WTR FCC", "WTR FCCS", "WTR PAD", "WTR PASD",
+            "WTR FCCGD", "WTR FCCGDS", "WTR TIL", "WTR TILS", "WTR FCVUV", "WTR FCVUVS", "WTR FCVT",
+            "WTR FCVTS", "WTR FCWL", "WTR FCWLS", "WTR FCW", "WTR FCWS", "WTR LIFT", "WTR ULAY",
+            "WTR ULAYS",
+            "CLN PWASH", // From Biowash/Extraction
+            // Finish Carpentry items that should be SQFT/LF
+            "WTR BASEB", "WTR BASE", "WTR BASED", "WTR BASE>", "WTR BASEB>", "WTR CB", "WTR CBB",
+            "WTR TRIA", "WTR TRIM", "WTR TRI", "WTR TRID", "WTR PLYTK", "WTR PLYTKSA"
+        ];
+
+        // Helper function to extract item code from option text
+        function getItemCode(optionText) {
+            const match = optionText.match(/\(([^)]+)\)/);
+            return match ? match[1] : '';
+        }
+
+        const ceilingOptions = [
+            "Drywall per SQFT (WTR DRYW)",
+            "Drywall per SQFT Cat 3 (WTR DRYWS)",
+            "Heat register (HVC REGF)",
+            "Detach Light Fixture (LIT AV)",
+            "Remove Light Fixture (LIT AV)",
+            "Detach Ceiling Fan (LIT FNRS)",
+            "Remove Ceiling Fan (LIT FNL)",
+            "Detach Bathroom Fan Cover (ELE BFCRS)",
+            "Remove Bathroom Fan Cover (ELE BFNV)",
+            "Detach Bathroom Fan (ELE BVENTRS)",
+            "Remove Bathroom Fan (ELE BFANV)",
+            "Detach Ceiling Tile (ACT STRS)",
+            "Remove Ceiling Tile (WTR ACTS)",
+            "Remove Ceiling Tile CAT 3 (WTR ACTSS)",
+            "Remove Ceiling Tile Grid (ACT SG)",
+            "Detach Smoke Detector (ELE SMOKERS)",
+            "Remove Smoke Detector (ELE SMOKE)",
+            "Remove Insulation (WTR INS)",
+            "Remove Insulation CAT 3 (WTR INSS)",
+            "Remove Vapor Barrier (WTR CSV)"
+        ];
+
+        const afterHoursOptions = [
+            "Apply anti-microbial agent - after hours (WTR GRMBA)",
+            "Heat register (HVC REGF)",
+            "Containment (WTR BARRA)",
+            "Remove Baseboard – After hours (WTR BASEA)",
+            "Baseboard - Detach - after hours (WTR BASEDA)",
+            "Tear out trim - after hours (WTR TRIA)",
+            "Tear out trim - CAT 3 - after hours (WTR TRIMA)",
+            "Trim - Detach - after hours (WTR TRIDA)",
+            "Block and pad furniture in room - after hours (WTR BLKA)",
+            "Protect - Cover with plastic - after hours (WTR PROTA)",
+            "Tear out wet drywall - after hours (WTR DRYWA)",
+            "Tear out wet drywall - CAT 3 - after hours (WTR DRYWSA)",
+            "Add-on cost for tearing out glued-on drywall - after hours (WTR DRYWGA)",
+            "Tear out wet drywall at the - 2' level aft hrs (WTR DRYWLFA)",
+            "Tear out wet drywall at the - 2' level - CAT 3 - after hrs (WTR DRYWSLA)",
+            "Tear out wet drywall at the - 4' level - after hrs (WTR DRYW4A)",
+            "Tear out wet drywall at the - 4' level - CAT 3 - after hrs (WTR DRYW4SA)",
+            "Tear out wet drywall at the – 4” aft hrs (WTR DRYWIA)",
+            "Tear out wet drywall at the – 4” - CAT 3 - aft hrs (WTR DRYWISA)",
+            "Tear out wet insulation - after hours (WTR INSA)",
+            "Tear out wet insulation - CAT 3 - after hours (WTR INSS)",
+            "Tear out wet insulation - 2' - after hours (WTR INSWLFA)",
+            "Tear out wet insulation - 2' - CAT 3 - after hours (WTR INSWLSA)",
+            "Tear out wet insulation - 4' - after hours (WTR INSW4A)",
+            "Tear out wet insulation - 4' - CAT 3 - after hours (WTR INSW4SA)",
+            "Tear out toe kick - after hours (WTR PLYTKA)",
+            "Tear out toe kick - CAT 3 - after hours (WTR PLYTKSA)",
+            "Tear out wet paneling - after hours (WTR PNLA)",
+            "Tear out wet paneling - CAT 3 after hours (WTR PNLSA)",
+            "Water extract from carpeted floor (WTR EXTA)",
+            "Water extract from carpeted floor - CAT 3 - aft hours (WTR EXTSA)",
+            "Water extraction from hard surface floor - after hours (WTR EXTHA)",
+            "Water extraction from hard surface floor - CAT 3 - after hours (WTR EXTHSA)",
+            "Pumping & hauling of standing Cat 3 water - after hours (WTR EXTWPA)",
+            "Tear out wet non-salvage carpet - after hours (WTR FCCA)",
+            "Tear out wet non-salvage carpet - CAT 3 - after hours (WTR FCCSA)",
+            "Tear out wet carpet pad - after hours (WTR PADA)",
+            "Tear out wet carpet pad - CAT 3 - after hours (WTR PASDA)",
+            "Tear out wet glued down carpet - after hours (WTR FCCGDA)",
+            "Tear out wet glued down carpet - CAT 3 - after hours (WTR FCCGDSA)",
+            "Tear out tile floor - after hours (WTR TILA)",
+            "Tear out tile floor - CAT 3 - after hours (WTR TILSA)",
+            "Tear out vinyl/lino - after hrs (WTR FCVA)",
+            "Tear out vinyl/lino - CAT 3 - after hrs (WTR FCVSA)",
+            "Tear out vinyl/lino & subfloor - after hours (WTR FCVUVA)",
+            "Tear out vinyl/lino & subfloor - CAT 3 - after hours (WTR FCVUVSA)",
+            "Tear out vinyl tile - after hours (WTR FCVT)",
+            "Tear out vinyl tile - CAT 3 - after hours (WTR FCVTSA)",
+            "Tear out laminate floor - after hours (WTR FCWLA)",
+            "Tear out laminate floor - CAT 3 - after hours (WTR FCWLSA)",
+            "Tear out hardwood flooring - after hours (WTR FCWA)",
+            "Tear out hardwood flooring - CAT 3 - after hours (WTR FCWSA)",
+            "Lift carpet for drying – after hours (WTR LIFTA)",
+            "Tear out subfloor - after hours (WTR ULAYA)",
+            "Tear out subfloor - CAT 3 - after hours (WTR ULAYSA)",
+            "Dryer - electric - Detach - after hours (WTR DRYEDA)",
+            "Dryer - gas - Detach - after hours (WTR DRYGDA)",
+            "Washer/Washing machine - Detach - after hours (WTR WSHDA)",
+            "Dishwasher - Detach - after hours (WTR DWDA)",
+            "Refrigerator - Detach - after hours (WTR RFDA)",
+            "Oven - electric - Detach - after hours (WTR RGEDA)",
+            "Oven - gas - Detach - after hours (WTR RGGDA)",
+            "Toilet - Detach - after hours (WTR TLTDA)"
+        ];
+
+        const floorOptions = [
+            "Water extract from carpeted floor (WTR EXT)",
+            "Water extract from carpeted floor - CAT (WTR EXTS)",
+            "Water extraction from hard surface floor (WTR EXTH)",
+            "Water extraction from hard surface floor - CAT 3 (WTR EXTHS)",
+            "Pumping & hauling of standing Cat 3 water (WTR EXTWP)",
+            "Tear out wet non-salvage carpet (WTR FCC)",
+            "Tear out wet non-salvage carpet - CAT (WTR FCCS)",
+            "Tear out wet carpet pad (WTR PAD)",
+            "Tear out wet carpet pad - CAT 3 (WTR PASD)",
+            "Tear out wet glued down carpet (WTR FCCGD)",
+            "Tear out wet glued down carpet - CAT 3 (WTR FCCGDS)",
+            "Tear out tile floor (WTR TIL)",
+            "Tear out tile floor - CAT 3 (WTR TILS)",
+            "Tear out vinyl/lino (WTR FCV)",
+            "Tear out vinyl/lino - CAT 3 (WTR FCVS)",
+            "Tear out vinyl/lino & subfloor (WTR FCVUV)",
+            "Tear out vinyl/lino & subfloor - CAT 3 (WTR FCVUVS)",
+            "Tear out vinyl tile (WTR FCVT)",
+            "Tear out vinyl tile - CAT 3 (WTR FCVTS)",
+            "Tear out laminate floor (WTR FCWL)",
+            "Tear out laminate floor - CAT 3 (WTR FCWLS)",
+            "Tear out hardwood flooring (WTR FCW)",
+            "Tear out hardwood flooring - CAT 3 (WTR FCWS)",
+            "Lift carpet for drying (WTR LIFT)",
+            "Tear out subfloor (WTR ULAY)",
+            "Tear out subfloor - CAT 3 (WTR ULAYS)",
+            "Heat register (HVC REGF)"
+        ];
+
+        const wallOptions = [
+            "Tear out wet drywall (WTR DRYW)",
+            "Tear out wet drywall - CAT 3 (WTR DRYWS)",
+            "Add-on cost for tearing out glued-on drywall (WTR DRYWG)",
+            "Tear out wet drywall at the - 2' level (WTR DRYWLF)",
+            "Tear out wet drywall at the - 2' level - CAT 3 (WTR DRYWSL)",
+            "Tear out wet drywall at the - 4' level (WTR DRYW4)",
+            "Tear out wet drywall at the - 4' level - CAT 3 (WTR DRYW4S)",
+            "Tear out wet drywall at the – 4” (WTR DRYWI)",
+            "Tear out wet drywall at the – 4” - CAT 3 (WTR DRYWIS)",
+            "Tear out wet insulation (WTR INS)",
+            "Tear out wet insulation - CAT 3 (WTR INSS)",
+            "Tear out wet insulation - 2' (WTR INSWLF)",
+            "Tear out wet insulation - 2' - CAT 3 (WTR INSWLS)",
+            "Tear out wet insulation - 4' (WTR INSW4)",
+            "Tear out wet insulation - 4' - CAT 3 (WTR INSW4S)",
+            "Tear out wet paneling (WTR PNL)",
+            "Tear out wet paneling - CAT 3 (WTR PNLS)",
+            "Heat register (HVC REGF)"
+        ];
+
+        const finishCarpentryOptions = [
+            "Door stop - spring stop - mounted on baseboard (FNH DSTP-)",
+            "Door stop - wall or floor mounted - Detach (FNH DSTPRS)",
+            "Door stop - hinge pin mounted (FNH DSTPH)",
+            "Tear out Baseboard – CAT 3 (WTR BASEB)",
+            "Tear out Baseboard – (WTR BASE)",
+            "Baseboard - Detach (WTR BASED)",
+            "Tear out oversized/multibase (WTR BASE>)",
+            "Tear out oversized/multibase - Cat 3 (WTR BASEB>)",
+            "Tear out cove base moulding (WTR CB)",
+            "Tear out cove base moulding Cat 3 (WTR CBB)",
+            "Tear out trim - after hours (WTR TRIA)",
+            "Tear out trim - CAT 3 (WTR TRIM)",
+            "Tear out trim (WTR TRI)",
+            "Trim - Detach - (WTR TRID)",
+            "Tear out toe kick - (WTR PLYTK)",
+            "Tear out toe kick - CAT 3 (WTR PLYTKSA)",
+            "Tear out cabinetry - full height unit (WTR CABFH)",
+            "Cabinet - full height unit – Detach (WTR CABFHD)",
+            "Cabinet - lower (base) unit with braces – Detach (WTR CABLDS)",
+            "Tear out cabinetry - lower (base) units (WTR CABLOW)",
+            "Cabinet - lower (base) unit – Detach (WTR CABLWD)",
+            "Tear out cabinetry - upper (wall) units (WTR CABUP)",
+            "Cabinet - upper (wall) unit – Detach (WTR CABUPD)",
+            "Tear out vanity (WTR CABVAN)",
+            "Vanity unit – Detach (WTR CABVND)",
+            "Vanity and countertop – Detach (WTR CABVCD)",
+            "Tear out cabinetry - vanity and countertop (WTR CABVNC)",
+            "Cabinet - vanity unit – Detach (WTR CABVND)",
+            "Medicine cabinet – Detach (WTR CABMCD)",
+            "Interior door slab only - Detach (WTR DORSLD)",
+            "Door knob/lockset - Detach & reset (FNH DORHRS)"
+        ];
+
+        const biowashExtractionOptions = [
+            "Apply plant-based anti-microbial agent (WTR GRMB)",
+            "Clean with pressure/chemical spray (CLN PWASH)",
+            "Water extraction from hard surface floor (WTR EXTH)",
+            "Water extraction from hard surface floor - CAT 3 (WTR EXTHS)",
+            "Water extraction from carpeted floor (WTR EXT)",
+            "Water extraction from carpeted floor – CAT 3 (WTR EXTHS)"
+        ];
+
+        // Function to update the visual progress indicator
+        function updateProgressIndicator() {
+            const steps = document.querySelectorAll('.progress-step');
+            steps.forEach((step, index) => {
+                const stepNumber = index + 1;
+                step.classList.remove('active', 'completed');
+                if (stepNumber < currentStepNum) {
+                    step.classList.add('completed');
+                } else if (stepNumber === currentStepNum) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        // Function to navigate to the next step
+        function nextStep(current) {
+            // --- Input Validation Logic ---
+            let isValid = true;
+            let errorMessage = "";
+
+            if (current === 1) {
+                const clientName = document.getElementById("client-name").value.trim();
+                if (clientName === "") {
+                    isValid = false;
+                    errorMessage = "Please enter the client's name to proceed.";
+                }
+            } else if (current === 2) {
+                const travelDetails = document.getElementById("travel-details").value.trim();
+                const travelKm = document.getElementById("travel-km").value.trim();
+                if (travelDetails === "" || travelKm === "") {
+                    isValid = false;
+                    errorMessage = "Please enter both travel details and kilometers to proceed.";
+                }
+            } else if (current === 3) {
+                const debrisQuantity = document.getElementById("debris-quantity").value.trim();
+                if (debrisQuantity === "") {
+                    isValid = false;
+                    errorMessage = "Please enter the debris quantity to proceed.";
+                }
+            } else if (current === 4) {
+                const roomName = document.getElementById("room-name").value.trim();
+                if (roomName === "") {
+                    isValid = false;
+                    errorMessage = "Please enter the room name to proceed.";
+                }
+            }
+
+            if (!isValid) {
+                displayMessageBox(errorMessage);
+                return; // Stop the function if validation fails
+            }
+            // --- End Input Validation Logic ---
+
+            const currentStepElement = document.getElementById(`step-${current}`);
+            const nextStepElement = document.getElementById(`step-${current + 1}`);
+
+            if (currentStepElement) {
+                currentStepElement.classList.remove("active");
+            }
+
+            if (nextStepElement) {
+                currentStepNum = current + 1;
+                nextStepElement.classList.add("active");
+                updateProgressIndicator();
+            }
+        }
+
+        // Function to navigate to the previous step
+        function prevStep(current) {
+            const currentStepElement = document.getElementById(`step-${current}`);
+            const prevStepElement = document.getElementById(`step-${current - 1}`);
+
+            if (currentStepElement) {
+                currentStepElement.classList.remove("active");
+            }
+
+            if (prevStepElement) {
+                currentStepNum = current - 1;
+                prevStepElement.classList.add("active");
+                updateProgressIndicator();
+            }
+        }
+
+        // Function to add a new dehumidifier input block
+        function addDehumidifier() {
+            dehuCount++;
+            const container = document.getElementById("dehu-container");
+            const wrapper = document.createElement("div");
+            wrapper.id = `dehu-item-wrapper-${dehuCount}`;
+            wrapper.classList.add('dehu-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="dehu-type-${dehuCount}">Dehumidifier Type</label>
+                <select id="dehu-type-${dehuCount}">
+                    <option value="Revolution LGR (WTR DHM>)">Revolution LGR (WTR DHM>)</option>
+                    <option value="DrizAir 1200 (WTR DHM)">DrizAir 1200 (WTR DHM)</option>
+                    <option value="Phoenix (WTR DHMD)">Phoenix (WTR DHMD)</option>
+                </select>
+                <label for="dehu-details-${dehuCount}">Details</label>
+                <input type="text" id="dehu-details-${dehuCount}" placeholder="How many for how many days">
+                <button type="button" class="remove-button" data-index="${dehuCount}" data-type="dehu">Remove This Dehumidifier</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listener for the new remove button
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeDehumidifier(indexToRemove);
+            });
+        }
+
+        // Function to remove a dehumidifier input block
+        function removeDehumidifier(index) {
+            const elementToRemove = document.getElementById(`dehu-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Function to add a new After Hours line item input block
+        function addAfterHoursLineItem() {
+            afterHoursLineItemCount++;
+            const container = document.getElementById("after-hours-items-container");
+            const optionsHTML = afterHoursOptions.map(option => `<option value="${option}">${option}</option>`).join("");
+            const wrapper = document.createElement("div");
+            wrapper.id = `after-hours-item-wrapper-${afterHoursLineItemCount}`;
+            wrapper.classList.add('after-hours-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="after-hours-type-${afterHoursLineItemCount}">Line item:</label>
+                <select id="after-hours-type-${afterHoursLineItemCount}">
+                    <option value="">-- Select --</option>
+                    ${optionsHTML}
+                </select>
+                <div id="after-hours-extra-${afterHoursLineItemCount}" style="margin-top: 8px;"></div>
+                <button type="button" class="remove-button" data-index="${afterHoursLineItemCount}" data-type="after-hours">Remove This Item</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listener for the new select and remove button
+            wrapper.querySelector(`#after-hours-type-${afterHoursLineItemCount}`).addEventListener('change', (event) => {
+                handleAfterHoursChange(afterHoursLineItemCount);
+            });
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeAfterHoursLineItem(indexToRemove);
+            });
+        }
+
+        // Function to remove an After Hours line item input block
+        function removeAfterHoursLineItem(index) {
+            const elementToRemove = document.getElementById(`after-hours-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Handles dynamic input fields based on After Hours line item selection
+        function handleAfterHoursChange(index) {
+            const select = document.getElementById(`after-hours-type-${index}`);
+            const extraContainer = document.getElementById(`after-hours-extra-${index}`);
+            extraContainer.innerHTML = "";
+
+            const value = select.value;
+            const itemCode = getItemCode(value);
+
+            let labelText = "Quantity:";
+            let placeholderText = "Quantity";
+
+            if (sqftItems.includes(itemCode)) {
+                labelText = "SQFT:";
+                placeholderText = "Enter SQFT";
+            } else if (value.includes("Baseboard") || value.includes("trim") || value.includes("paneling") || value.includes("cove base moulding") || value.includes("toe kick")) {
+                // Specific check for linear feet in after hours if not covered by sqftItems
+                labelText = "SQFT/LF:";
+                placeholderText = "Enter SQFT or Linear Feet";
+            }
+
+            extraContainer.innerHTML = `
+                <label for="after-hours-input-${index}">${labelText}</label>
+                <input type="text" id="after-hours-input-${index}" placeholder="${placeholderText}">
+            `;
+        }
+
+        // Function to add a new ceiling line item input block
+        function addCeilingLineItem() {
+            ceilingLineItemCount++;
+            const container = document.getElementById("ceiling-items-container");
+            const optionsHTML = ceilingOptions.map(option => `<option value="${option}">${option}</option>`).join("");
+            const wrapper = document.createElement("div");
+            wrapper.id = `ceiling-line-item-wrapper-${ceilingLineItemCount}`;
+            wrapper.classList.add('ceiling-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="ceiling-type-${ceilingLineItemCount}">Line item:</label>
+                <select id="ceiling-type-${ceilingLineItemCount}">
+                    <option value="">-- Select --</option>
+                    ${optionsHTML}
+                </select>
+                <div id="ceiling-extra-${ceilingLineItemCount}" style="margin-top: 8px;"></div>
+                <button type="button" class="remove-button" data-index="${ceilingLineItemCount}" data-type="ceiling">Remove This Item</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listeners for the new select and remove button
+            wrapper.querySelector(`#ceiling-type-${ceilingLineItemCount}`).addEventListener('change', (event) => {
+                handleCeilingChange(ceilingLineItemCount);
+            });
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeCeilingLineItem(indexToRemove);
+            });
+        }
+
+        // Function to remove a ceiling line item input block
+        function removeCeilingLineItem(index) {
+            const elementToRemove = document.getElementById(`ceiling-line-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Handles dynamic input fields based on ceiling line item selection
+        function handleCeilingChange(index) {
+            const select = document.getElementById(`ceiling-type-${index}`);
+            const extraContainer = document.getElementById(`ceiling-extra-${index}`);
+            extraContainer.innerHTML = "";
+
+            const value = select.value;
+            const itemCode = getItemCode(value);
+
+            if (value.includes("Drywall")) {
+                extraContainer.innerHTML = `
+                    <label for="ceiling-extra-input-${index}">Width of drywall:</label>
+                    <input type="text" id="ceiling-extra-input-${index}" placeholder="Width of drywall">
+                    <label for="ceiling-extra-sqft-${index}">SQFT of drywall removed:</label>
+                    <input type="text" id="ceiling-extra-sqft-${index}" placeholder="SQFT of drywall removed">
+                `;
+            } else if (value.includes("Insulation")) {
+                extraContainer.innerHTML = `
+                    <label for="ceiling-insulation-sqft-${index}">SQFT of insulation removed:</label>
+                    <input type="text" id="ceiling-insulation-sqft-${index}" placeholder="SQFT of insulation removed">
+                    <label for="ceiling-insulation-width-${index}">Width of insulation:</label>
+                    <input type="text" id="ceiling-insulation-width-${index}" placeholder="Width of insulation">
+                `;
+            } else if (value.includes("Light Fixture") || value.includes("Ceiling Fan") || value.includes("Bathroom Fan") || value.includes("Smoke Detector")) {
+                extraContainer.innerHTML = `
+                    <label for="ceiling-quantity-${index}">Quantity:</label>
+                    <input type="text" id="ceiling-quantity-${index}" placeholder="Quantity">
+                `;
+            } else if (value.includes("Ceiling Tile")) {
+                extraContainer.innerHTML = `
+                    <label for="ceiling-extra-input-${index}">Size and type of ceiling tiles:</label>
+                    <input type="text" id="ceiling-extra-input-${index}" placeholder="Size and type of ceiling tiles">
+                    <label for="ceiling-quantity-${index}">Quantity:</label>
+                    <input type="text" id="ceiling-quantity-${index}" placeholder="Quantity">
+                `;
+            } else if (itemCode && sqftItems.includes(itemCode)) { // Generic SQFT for other items if specified
+                 extraContainer.innerHTML = `
+                    <label for="ceiling-sqft-${index}">SQFT:</label>
+                    <input type="text" id="ceiling-sqft-${index}" placeholder="Enter SQFT">
+                `;
+            }
+            else {
+                extraContainer.innerHTML = `
+                    <label for="ceiling-quantity-${index}">Quantity:</label>
+                    <input type="text" id="ceiling-quantity-${index}" placeholder="Quantity">
+                `;
+            }
+        }
+
+        // Function to add a new Floor line item input block
+        function addFloorLineItem() {
+            floorLineItemCount++;
+            const container = document.getElementById("floor-items-container");
+            const optionsHTML = floorOptions.map(option => `<option value="${option}">${option}</option>`).join("");
+            const wrapper = document.createElement("div");
+            wrapper.id = `floor-item-wrapper-${floorLineItemCount}`;
+            wrapper.classList.add('floor-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="floor-type-${floorLineItemCount}">Line item:</label>
+                <select id="floor-type-${floorLineItemCount}" onchange="handleFloorChange(${floorLineItemCount})">
+                    <option value="">-- Select --</option>
+                    ${optionsHTML}
+                </select>
+                <div id="floor-extra-${floorLineItemCount}" style="margin-top: 8px;"></div>
+                <button type="button" class="remove-button" data-index="${floorLineItemCount}" data-type="floor">Remove This Item</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listeners for the new select and remove button
+            wrapper.querySelector(`#floor-type-${floorLineItemCount}`).addEventListener('change', (event) => {
+                handleFloorChange(floorLineItemCount);
+            });
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeFloorLineItem(indexToRemove);
+            });
+        }
+
+        // Function to remove a Floor line item input block
+        function removeFloorLineItem(index) {
+            const elementToRemove = document.getElementById(`floor-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Handles dynamic input fields based on floor line item selection
+        function handleFloorChange(index) {
+            const select = document.getElementById(`floor-type-${index}`);
+            const extraContainer = document.getElementById(`floor-extra-${index}`);
+            extraContainer.innerHTML = "";
+
+            const value = select.value;
+            const itemCode = getItemCode(value);
+
+            let labelText = "Quantity:";
+            let placeholderText = "Quantity";
+
+            if (sqftItems.includes(itemCode)) {
+                labelText = "SQFT:";
+                placeholderText = "Enter SQFT";
+            }
+
+            extraContainer.innerHTML = `
+                <label for="floor-input-${index}">${labelText}</label>
+                <input type="text" id="floor-input-${index}" placeholder="${placeholderText}">
+            `;
+        }
+
+        // Function to add a new Wall line item input block
+        function addWallLineItem() {
+            wallLineItemCount++;
+            const container = document.getElementById("wall-items-container");
+            const optionsHTML = wallOptions.map(option => `<option value="${option}">${option}</option>`).join("");
+            const wrapper = document.createElement("div");
+            wrapper.id = `wall-item-wrapper-${wallLineItemCount}`;
+            wrapper.classList.add('wall-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="wall-type-${wallLineItemCount}">Line item:</label>
+                <select id="wall-type-${wallLineItemCount}" onchange="handleWallChange(${wallLineItemCount})">
+                    <option value="">-- Select --</option>
+                    ${optionsHTML}
+                </select>
+                <div id="wall-extra-${wallLineItemCount}" style="margin-top: 8px;"></div>
+                <button type="button" class="remove-button" data-index="${wallLineItemCount}" data-type="wall">Remove This Item</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listeners for the new select and remove button
+            wrapper.querySelector(`#wall-type-${wallLineItemCount}`).addEventListener('change', (event) => {
+                handleWallChange(wallLineItemCount);
+            });
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeWallLineItem(indexToRemove);
+            });
+        }
+
+        // Function to remove a Wall line item input block
+        function removeWallLineItem(index) {
+            const elementToRemove = document.getElementById(`wall-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Handles dynamic input fields based on wall line item selection
+        function handleWallChange(index) {
+            const select = document.getElementById(`wall-type-${index}`);
+            const extraContainer = document.getElementById(`wall-extra-${index}`);
+            extraContainer.innerHTML = "";
+
+            const value = select.value;
+            const itemCode = getItemCode(value);
+
+            let labelText = "Quantity:";
+            let placeholderText = "Quantity";
+
+            if (sqftItems.includes(itemCode)) {
+                labelText = "SQFT:";
+                placeholderText = "Enter SQFT";
+            }
+
+            extraContainer.innerHTML = `
+                <label for="wall-input-${index}">${labelText}</label>
+                <input type="text" id="wall-input-${index}" placeholder="${placeholderText}">
+            `;
+        }
+
+        // Function to add a new Finish Carpentry line item input block
+        function addFinishCarpentryLineItem() {
+            finishCarpentryLineItemCount++;
+            const container = document.getElementById("finish-carpentry-items-container");
+            const optionsHTML = finishCarpentryOptions.map(option => `<option value="${option}">${option}</option>`).join("");
+            const wrapper = document.createElement("div");
+            wrapper.id = `finish-carpentry-item-wrapper-${finishCarpentryLineItemCount}`;
+            wrapper.classList.add('finish-carpentry-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="finish-carpentry-type-${finishCarpentryLineItemCount}">Line item:</label>
+                <select id="finish-carpentry-type-${finishCarpentryLineItemCount}" onchange="handleFinishCarpentryChange(${finishCarpentryLineItemCount})">
+                    <option value="">-- Select --</option>
+                    ${optionsHTML}
+                </select>
+                <div id="finish-carpentry-extra-${finishCarpentryLineItemCount}" style="margin-top: 8px;"></div>
+                <button type="button" class="remove-button" data-index="${finishCarpentryLineItemCount}" data-type="finish-carpentry">Remove This Item</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listeners for the new select and remove button
+            wrapper.querySelector(`#finish-carpentry-type-${finishCarpentryLineItemCount}`).addEventListener('change', (event) => {
+                handleFinishCarpentryChange(finishCarpentryLineItemCount);
+            });
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeFinishCarpentryLineItem(indexToRemove);
+            });
+        }
+
+        // Function to remove a Finish Carpentry line item input block
+        function removeFinishCarpentryLineItem(index) {
+            const elementToRemove = document.getElementById(`finish-carpentry-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Handles dynamic input fields based on finish carpentry line item selection
+        function handleFinishCarpentryChange(index) {
+            const select = document.getElementById(`finish-carpentry-type-${index}`);
+            const extraContainer = document.getElementById(`finish-carpentry-extra-${index}`);
+            extraContainer.innerHTML = "";
+
+            const value = select.value;
+            const itemCode = getItemCode(value);
+
+            let labelText = "Quantity:";
+            let placeholderText = "Quantity";
+
+            // Specific check for SQFT/LF items in Finish Carpentry
+            if (sqftItems.includes(itemCode)) {
+                labelText = "SQFT/LF:";
+                placeholderText = "Enter SQFT or Linear Feet";
+            }
+
+            extraContainer.innerHTML = `
+                <label for="finish-carpentry-input-${index}">${labelText}</label>
+                <input type="text" id="finish-carpentry-input-${index}" placeholder="${placeholderText}">
+            `;
+        }
+
+        // Function to add a new Biowash/Extraction line item input block
+        function addBiowashExtractionLineItem() {
+            biowashExtractionLineItemCount++;
+            const container = document.getElementById("biowash-extraction-items-container");
+            const optionsHTML = biowashExtractionOptions.map(option => `<option value="${option}">${option}</option>`).join("");
+            const wrapper = document.createElement("div");
+            wrapper.id = `biowash-extraction-item-wrapper-${biowashExtractionLineItemCount}`;
+            wrapper.classList.add('biowash-extraction-item-wrapper');
+            wrapper.innerHTML = `
+                <label for="biowash-extraction-type-${biowashExtractionLineItemCount}">Line item:</label>
+                <select id="biowash-extraction-type-${biowashExtractionLineItemCount}" onchange="handleBiowashExtractionChange(${biowashExtractionLineItemCount})">
+                    <option value="">-- Select --</option>
+                    ${optionsHTML}
+                </select>
+                <div id="biowash-extraction-extra-${biowashExtractionLineItemCount}" style="margin-top: 8px;"></div>
+                <button type="button" class="remove-button" data-index="${biowashExtractionLineItemCount}" data-type="biowash-extraction">Remove This Item</button>
+            `;
+            container.appendChild(wrapper);
+
+            // Attach event listeners for the new select and remove button
+            wrapper.querySelector(`#biowash-extraction-type-${biowashExtractionLineItemCount}`).addEventListener('change', (event) => {
+                handleBiowashExtractionChange(biowashExtractionLineItemCount);
+            });
+            wrapper.querySelector('.remove-button').addEventListener('click', (event) => {
+                const indexToRemove = event.target.dataset.index;
+                removeBiowashExtractionLineItem(indexToRemove);
+            });
+        }
+
+        // Function to remove a Biowash/Extraction line item input block
+        function removeBiowashExtractionLineItem(index) {
+            const elementToRemove = document.getElementById(`biowash-extraction-item-wrapper-${index}`);
+            if (elementToRemove) {
+                elementToRemove.remove();
+            }
+        }
+
+        // Handles dynamic input fields based on Biowash/Extraction line item selection
+        function handleBiowashExtractionChange(index) {
+            const select = document.getElementById(`biowash-extraction-type-${index}`);
+            const extraContainer = document.getElementById(`biowash-extraction-extra-${index}`);
+            extraContainer.innerHTML = "";
+
+            const value = select.value;
+            const itemCode = getItemCode(value);
+
+            let labelText = "Quantity:";
+            let placeholderText = "Quantity";
+
+            if (sqftItems.includes(itemCode)) {
+                labelText = "SQFT:";
+                placeholderText = "Enter SQFT";
+            }
+
+            extraContainer.innerHTML = `
+                <label for="biowash-extraction-input-${index}">${labelText}</label>
+                <input type="text" id="biowash-extraction-input-${index}" placeholder="${placeholderText}">
+            `;
+        }
+
+        // Displays the summary page and generates the summary text
+        function showSummary() {
+            document.querySelectorAll(".step").forEach(step => step.classList.remove("active"));
+            currentStepNum = 13; // Set to the summary step number
+            document.getElementById("step-13").classList.add("active");
+            updateProgressIndicator();
+            generateSummary();
+        }
+
+        // Generates the final summary text based on form inputs
+        function generateSummary() {
+            const clientName = document.getElementById("client-name")?.value || "Not provided";
+            const travelDetails = document.getElementById("travel-details")?.value || "Not provided";
+            const travelKm = document.getElementById("travel-km")?.value || "Not provided";
+            const roomName = document.getElementById("room-name")?.value || "Not provided";
+            const debrisDisposal = document.getElementById("debris-disposal")?.value || "Not provided";
+            const debrisQuantity = document.getElementById("debris-quantity")?.value || "Not provided";
+            const airMovers = document.getElementById("air-movers")?.value || "Not provided";
+            const asbestosSamples = document.getElementById("asbestos-samples")?.value || "Not provided";
+
+            let dehuSummary = "";
+            for (let i = 1; i <= dehuCount; i++) {
+                const wrapper = document.getElementById(`dehu-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`dehu-type-${i}`)?.value || "";
+                    const details = document.getElementById(`dehu-details-${i}`)?.value.trim() || ""; // Trim whitespace
+                    if (type && details) { // Only add if both type and details are present
+                        dehuSummary += `- ${type}: ${details}\n`;
+                    }
+                }
+            }
+            if (dehuSummary.trim() === "") dehuSummary = "None\n"; // Check trimmed summary for "None"
+
+            // After Hours Summary
+            let afterHoursSummary = "";
+            for (let i = 1; i <= afterHoursLineItemCount; i++) {
+                const wrapper = document.getElementById(`after-hours-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`after-hours-type-${i}`)?.value || "";
+                    const inputField = document.getElementById(`after-hours-input-${i}`);
+                    const value = inputField?.value.trim() || "";
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
+
+                    if (type && value) {
+                        afterHoursSummary += `- ${type} | ${label}: ${value}\n`;
+                    }
+                }
+            }
+            if (afterHoursSummary.trim() === "") afterHoursSummary = "None\n";
+
+            let ceilingSummary = "";
+            for (let i = 1; i <= ceilingLineItemCount; i++) {
+                const wrapper = document.getElementById(`ceiling-line-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`ceiling-type-${i}`)?.value || "";
+                    const extraInput = document.getElementById(`ceiling-extra-input-${i}`)?.value.trim() || "";
+                    const sqftDrywall = document.getElementById(`ceiling-extra-sqft-${i}`)?.value.trim() || "";
+                    const insulSqft = document.getElementById(`ceiling-insulation-sqft-${i}`)?.value.trim() || "";
+                    const insulWidth = document.getElementById(`ceiling-insulation-width-${i}`)?.value.trim() || "";
+                    const quantity = document.getElementById(`ceiling-quantity-${i}`)?.value.trim() || "";
+                    const genericSqft = document.getElementById(`ceiling-sqft-${i}`)?.value.trim() || "";
+
+
+                    let hasRelevantData = false;
+                    if (type.includes("Drywall") && (extraInput || sqftDrywall)) {
+                        hasRelevantData = true;
+                    } else if (type.includes("Insulation") && (insulSqft || insulWidth)) {
+                        hasRelevantData = true;
+                    } else if ((type.includes("Light Fixture") || type.includes("Ceiling Tile") || type.includes("Ceiling Fan") || type.includes("Bathroom Fan") || type.includes("Smoke Detector")) && (extraInput || quantity)) {
+                        hasRelevantData = true;
+                    } else if (genericSqft) { // For generic SQFT items
+                        hasRelevantData = true;
+                    } else if (type && quantity) { // Fallback for general items with just quantity
+                        hasRelevantData = true;
+                    }
+
+                    if (type && hasRelevantData) {
+                        ceilingSummary += `- ${type}`;
+                        if (extraInput) ceilingSummary += ` - ${extraInput}`;
+                        if (sqftDrywall) ceilingSummary += ` | Drywall SQFT: ${sqftDrywall}`;
+                        if (insulSqft) ceilingSummary += ` | Insulation SQFT: ${insulSqft}`;
+                        if (insulWidth) ceilingSummary += ` | Insulation Width: ${insulWidth}`;
+                        if (quantity) ceilingSummary += ` | Quantity: ${quantity}`;
+                        if (genericSqft) ceilingSummary += ` | SQFT: ${genericSqft}`;
+                        ceilingSummary += `\n`;
+                    }
+                }
+            }
+            if (ceilingSummary.trim() === "") ceilingSummary = "None\n";
+
+            // Floors Summary
+            let floorSummary = "";
+            for (let i = 1; i <= floorLineItemCount; i++) {
+                const wrapper = document.getElementById(`floor-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`floor-type-${i}`)?.value || "";
+                    const inputField = document.getElementById(`floor-input-${i}`);
+                    const value = inputField?.value.trim() || "";
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
+
+                    if (type && value) {
+                        floorSummary += `- ${type} | ${label}: ${value}\n`;
+                    }
+                }
+            }
+            if (floorSummary.trim() === "") floorSummary = "None\n";
+
+            // Walls Summary
+            let wallSummary = "";
+            for (let i = 1; i <= wallLineItemCount; i++) {
+                const wrapper = document.getElementById(`wall-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`wall-type-${i}`)?.value || "";
+                    const inputField = document.getElementById(`wall-input-${i}`);
+                    const value = inputField?.value.trim() || "";
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
+
+                    if (type && value) {
+                        wallSummary += `- ${type} | ${label}: ${value}\n`;
+                    }
+                }
+            }
+            if (wallSummary.trim() === "") wallSummary = "None\n";
+
+            // Finish Carpentry Summary
+            let finishCarpentrySummary = "";
+            for (let i = 1; i <= finishCarpentryLineItemCount; i++) {
+                const wrapper = document.getElementById(`finish-carpentry-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`finish-carpentry-type-${i}`)?.value || "";
+                    const inputField = document.getElementById(`finish-carpentry-input-${i}`);
+                    const value = inputField?.value.trim() || "";
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
+
+                    if (type && value) {
+                        finishCarpentrySummary += `- ${type} | ${label}: ${value}\n`;
+                    }
+                }
+            }
+            if (finishCarpentrySummary.trim() === "") finishCarpentrySummary = "None\n";
+
+            // Biowash/Extraction Summary
+            let biowashExtractionSummary = "";
+            for (let i = 1; i <= biowashExtractionLineItemCount; i++) {
+                const wrapper = document.getElementById(`biowash-extraction-item-wrapper-${i}`);
+                if (wrapper) { // Only include if the item still exists
+                    const type = document.getElementById(`biowash-extraction-type-${i}`)?.value || "";
+                    const inputField = document.getElementById(`biowash-extraction-input-${i}`);
+                    const value = inputField?.value.trim() || "";
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
+
+                    if (type && value) {
+                        biowashExtractionSummary += `- ${type} | ${label}: ${value}\n`;
+                    }
+                }
+            }
+            if (biowashExtractionSummary.trim() === "") biowashExtractionSummary = "None\n";
+
+
+            const summary = `Client Name: ${clientName}
+
+Travel - Trips & People: ${travelDetails}
+Kilometers from Office: ${travelKm}
+
+Room Name: ${roomName}
+
+Debris Disposal: ${debrisDisposal} (${debrisQuantity})
+
+Equipment:
+Dehumidifiers:
+${dehuSummary}Air Movers: ${airMovers}
+
+Asbestos Testing:
+Asbestos test per sample (HMR ASBTS): ${asbestosSamples}
+
+After Hours Work:
+${afterHoursSummary}
+Ceiling Work:
+${ceilingSummary}
+Floor Work:
+${floorSummary}
+Wall Work:
+${wallSummary}
+Finish Carpentry Work:
+${finishCarpentrySummary}
+Biowash/Extraction Work:
+${biowashExtractionSummary}`;
+
+            document.getElementById("summary-output").textContent = summary;
+        }
+
+        // Copies the generated summary to the clipboard
+        function copySummaryToClipboard() {
+            const summaryText = document.getElementById("summary-output").textContent;
+            document.execCommand('copy'); // Fallback for navigator.clipboard.writeText
+            displayMessageBox("Summary copied to clipboard.");
+        }
+
+        // Downloads the generated summary as a .txt file
+        function downloadSummary() {
+            const summaryText = document.getElementById("summary-output").textContent;
+            const blob = new Blob([summaryText], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "summary.txt";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            displayMessageBox("Summary download initiated.");
+        }
+
+        // Custom message box function (replaces alert())
+        function displayMessageBox(message) {
+            const messageBox = document.createElement('div');
+            messageBox.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: #333;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 1000;
+                font-size: 1.1em;
+                opacity: 0;
+                transition: opacity 0.3s ease-in-out;
+            `;
+            messageBox.textContent = message;
+            document.body.appendChild(messageBox);
+
+            // Fade in
+            setTimeout(() => {
+                messageBox.style.opacity = '1';
+            }, 10);
+
+            // Fade out and remove after 3 seconds
+            setTimeout(() => {
+                messageBox.style.opacity = '0';
+                messageBox.addEventListener('transitionend', () => messageBox.remove());
+            }, 3000);
+        }
+
+
+        // Event listeners for navigation and dynamic buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            // Navigation buttons
+            document.getElementById('next-step-1').addEventListener('click', () => nextStep(1));
+            document.getElementById('prev-step-2').addEventListener('click', () => prevStep(2));
+            document.getElementById('next-step-2').addEventListener('click', () => nextStep(2));
+            document.getElementById('prev-step-3').addEventListener('click', () => prevStep(3));
+            document.getElementById('next-step-3').addEventListener('click', () => nextStep(3));
+            document.getElementById('prev-step-4').addEventListener('click', () => prevStep(4));
+            document.getElementById('next-step-4').addEventListener('click', () => nextStep(4));
+            document.getElementById('prev-step-5').addEventListener('click', () => prevStep(5));
+            document.getElementById('next-step-5').addEventListener('click', () => nextStep(5));
+            document.getElementById('prev-step-6').addEventListener('click', () => prevStep(6));
+            document.getElementById('next-step-6').addEventListener('click', () => nextStep(6));
+            document.getElementById('prev-step-7').addEventListener('click', () => prevStep(7));
+            document.getElementById('next-step-7').addEventListener('click', () => nextStep(7));
+            document.getElementById('prev-step-8').addEventListener('click', () => prevStep(8));
+            document.getElementById('next-step-8').addEventListener('click', () => nextStep(8));
+            document.getElementById('prev-step-9').addEventListener('click', () => prevStep(9));
+            document.getElementById('next-step-9').addEventListener('click', () => nextStep(9));
+            document.getElementById('prev-step-10').addEventListener('click', () => prevStep(10));
+            document.getElementById('next-step-10').addEventListener('click', () => nextStep(10));
+            document.getElementById('prev-step-11').addEventListener('click', () => prevStep(11));
+            document.getElementById('next-step-11').addEventListener('click', () => nextStep(11));
+            document.getElementById('prev-step-12').addEventListener('click', () => prevStep(12));
+            document.getElementById('show-summary').addEventListener('click', showSummary);
+            document.getElementById('prev-step-13').addEventListener('click', () => prevStep(13));
+
+            // Dynamic add buttons
+            document.getElementById('add-dehumidifier').addEventListener('click', addDehumidifier);
+            document.getElementById('add-after-hours-line-item').addEventListener('click', addAfterHoursLineItem);
+            document.getElementById('add-ceiling-line-item').addEventListener('click', addCeilingLineItem);
+            document.getElementById('add-floor-line-item').addEventListener('click', addFloorLineItem);
+            document.getElementById('add-wall-line-item').addEventListener('click', addWallLineItem);
+            document.getElementById('add-finish-carpentry-line-item').addEventListener('click', addFinishCarpentryLineItem);
+            document.getElementById('add-biowash-extraction-line-item').addEventListener('click', addBiowashExtractionLineItem);
+
+            // Summary action buttons
+            document.getElementById('copy-summary').addEventListener('click', copySummaryToClipboard);
+            document.getElementById('download-summary').addEventListener('click', downloadSummary);
+
+            // Initialize with one of each dynamic item and update progress on load
+            addDehumidifier();
+            addAfterHoursLineItem();
+            addCeilingLineItem();
+            addFloorLineItem();
+            addWallLineItem();
+            addFinishCarpentryLineItem();
+            addBiowashExtractionLineItem();
+            updateProgressIndicator(); // Call on load to set initial state
+        });
+    </script>
+</body>
+</html>
