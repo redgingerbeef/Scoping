@@ -265,6 +265,7 @@
         <pre id="summary-output"></pre>
         <button id="copy-summary">Copy to Clipboard</button>
         <button id="download-summary">Download as .txt</button>
+        <button id="start-new-room">Start New Room</button>
         <button id="prev-step-13">Back</button>
     </div>
 
@@ -278,6 +279,9 @@
         let biowashExtractionLineItemCount = 0;
         let currentStepNum = 1;
 
+        // Global array to store summaries for each *completed* room
+        let allRoomSummaries = [];
+
         // Array of item codes that should use SQFT as the primary input label
         const sqftItems = [
             "WTR GRMBA", "WTR GRMB", "WTR BARRA", "WTR PROTA", "WTR DRYWA", "WTR DRYWSA", "WTR DRYWGA",
@@ -286,14 +290,13 @@
             "WTR FCCGDSA", "WTR TILA", "WTR TILSA", "WTR FCV", "WTR FCVSA", "WTR FCVUVA", "WTR FCVUVSA",
             "WTR FCVTA", "WTR FCVTSA", "WTR FCWLA", "WTR FCWLSA", "WTR FCWA", "WTR FCWSA", "WTR LIFTA",
             "WTR ULAYA", "WTR ULAYSA",
-            "WTR BARR", "WTR PROT", // Included as per user's list, assuming they are codes for existing options.
+            "WTR BARR", "WTR PROT",
             "WTR DRYW", "WTR DRYWS", "WTR DRYWG", "WTR INS", "WTR PNL", "WTR PNLS", "WTR EXT",
             "WTR EXTS", "WTR EXTH", "WTR EXTWP", "WTR FCC", "WTR FCCS", "WTR PAD", "WTR PASD",
             "WTR FCCGD", "WTR FCCGDS", "WTR TIL", "WTR TILS", "WTR FCVUV", "WTR FCVUVS", "WTR FCVT",
             "WTR FCVTS", "WTR FCWL", "WTR FCWLS", "WTR FCW", "WTR FCWS", "WTR LIFT", "WTR ULAY",
             "WTR ULAYS",
-            "CLN PWASH", // From Biowash/Extraction
-            // Finish Carpentry items that should be SQFT/LF
+            "CLN PWASH",
             "WTR BASEB", "WTR BASE", "WTR BASED", "WTR BASE>", "WTR BASEB>", "WTR CB", "WTR CBB",
             "WTR TRIA", "WTR TRIM", "WTR TRI", "WTR TRID", "WTR PLYTK", "WTR PLYTKSA"
         ];
@@ -582,7 +585,6 @@
                 <select id="dehu-type-${dehuCount}">
                     <option value="Revolution LGR (WTR DHM>)">Revolution LGR (WTR DHM>)</option>
                     <option value="DrizAir 1200 (WTR DHM)">DrizAir 1200 (WTR DHM)</option>
-                    <option value="Phoenix (WTR DHMD)">Phoenix (WTR DHMD)</option>
                 </select>
                 <label for="dehu-details-${dehuCount}">Details</label>
                 <input type="text" id="dehu-details-${dehuCount}" placeholder="How many for how many days">
@@ -658,7 +660,6 @@
                 labelText = "SQFT:";
                 placeholderText = "Enter SQFT";
             } else if (value.includes("Baseboard") || value.includes("trim") || value.includes("paneling") || value.includes("cove base moulding") || value.includes("toe kick")) {
-                // Specific check for linear feet in after hours if not covered by sqftItems
                 labelText = "SQFT/LF:";
                 placeholderText = "Enter SQFT or Linear Feet";
             }
@@ -741,7 +742,7 @@
                     <label for="ceiling-quantity-${index}">Quantity:</label>
                     <input type="text" id="ceiling-quantity-${index}" placeholder="Quantity">
                 `;
-            } else if (itemCode && sqftItems.includes(itemCode)) { // Generic SQFT for other items if specified
+            } else if (itemCode && sqftItems.includes(itemCode)) {
                  extraContainer.innerHTML = `
                     <label for="ceiling-sqft-${index}">SQFT:</label>
                     <input type="text" id="ceiling-sqft-${index}" placeholder="Enter SQFT">
@@ -996,49 +997,33 @@
             `;
         }
 
-        // Displays the summary page and generates the summary text
-        function showSummary() {
-            document.querySelectorAll(".step").forEach(step => step.classList.remove("active"));
-            currentStepNum = 13; // Set to the summary step number
-            document.getElementById("step-13").classList.add("active");
-            updateProgressIndicator();
-            generateSummary();
-        }
-
-        // Generates the final summary text based on form inputs
-        function generateSummary() {
-            const clientName = document.getElementById("client-name")?.value || "Not provided";
-            const travelDetails = document.getElementById("travel-details")?.value || "Not provided";
-            const travelKm = document.getElementById("travel-km")?.value || "Not provided";
+        // Function to generate summary text for the *current* room's inputs
+        function generateCurrentRoomSummaryText() {
             const roomName = document.getElementById("room-name")?.value || "Not provided";
-            const debrisDisposal = document.getElementById("debris-disposal")?.value || "Not provided";
-            const debrisQuantity = document.getElementById("debris-quantity")?.value || "Not provided";
             const airMovers = document.getElementById("air-movers")?.value || "Not provided";
             const asbestosSamples = document.getElementById("asbestos-samples")?.value || "Not provided";
 
             let dehuSummary = "";
             for (let i = 1; i <= dehuCount; i++) {
                 const wrapper = document.getElementById(`dehu-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`dehu-type-${i}`)?.value || "";
-                    const details = document.getElementById(`dehu-details-${i}`)?.value.trim() || ""; // Trim whitespace
-                    if (type && details) { // Only add if both type and details are present
+                    const details = document.getElementById(`dehu-details-${i}`)?.value.trim() || "";
+                    if (type && details) {
                         dehuSummary += `- ${type}: ${details}\n`;
                     }
                 }
             }
-            if (dehuSummary.trim() === "") dehuSummary = "None\n"; // Check trimmed summary for "None"
+            if (dehuSummary.trim() === "") dehuSummary = "None\n";
 
-            // After Hours Summary
             let afterHoursSummary = "";
             for (let i = 1; i <= afterHoursLineItemCount; i++) {
                 const wrapper = document.getElementById(`after-hours-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`after-hours-type-${i}`)?.value || "";
                     const inputField = document.getElementById(`after-hours-input-${i}`);
                     const value = inputField?.value.trim() || "";
-                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
-
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value";
                     if (type && value) {
                         afterHoursSummary += `- ${type} | ${label}: ${value}\n`;
                     }
@@ -1049,7 +1034,7 @@
             let ceilingSummary = "";
             for (let i = 1; i <= ceilingLineItemCount; i++) {
                 const wrapper = document.getElementById(`ceiling-line-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`ceiling-type-${i}`)?.value || "";
                     const extraInput = document.getElementById(`ceiling-extra-input-${i}`)?.value.trim() || "";
                     const sqftDrywall = document.getElementById(`ceiling-extra-sqft-${i}`)?.value.trim() || "";
@@ -1060,17 +1045,11 @@
 
 
                     let hasRelevantData = false;
-                    if (type.includes("Drywall") && (extraInput || sqftDrywall)) {
-                        hasRelevantData = true;
-                    } else if (type.includes("Insulation") && (insulSqft || insulWidth)) {
-                        hasRelevantData = true;
-                    } else if ((type.includes("Light Fixture") || type.includes("Ceiling Tile") || type.includes("Ceiling Fan") || type.includes("Bathroom Fan") || type.includes("Smoke Detector")) && (extraInput || quantity)) {
-                        hasRelevantData = true;
-                    } else if (genericSqft) { // For generic SQFT items
-                        hasRelevantData = true;
-                    } else if (type && quantity) { // Fallback for general items with just quantity
-                        hasRelevantData = true;
-                    }
+                    if (type.includes("Drywall") && (extraInput || sqftDrywall)) { hasRelevantData = true; }
+                    else if (type.includes("Insulation") && (insulSqft || insulWidth)) { hasRelevantData = true; }
+                    else if ((type.includes("Light Fixture") || type.includes("Ceiling Tile") || type.includes("Ceiling Fan") || type.includes("Bathroom Fan") || type.includes("Smoke Detector")) && (extraInput || quantity)) { hasRelevantData = true; }
+                    else if (genericSqft) { hasRelevantData = true; }
+                    else if (type && quantity) { hasRelevantData = true; }
 
                     if (type && hasRelevantData) {
                         ceilingSummary += `- ${type}`;
@@ -1086,16 +1065,14 @@
             }
             if (ceilingSummary.trim() === "") ceilingSummary = "None\n";
 
-            // Floors Summary
             let floorSummary = "";
             for (let i = 1; i <= floorLineItemCount; i++) {
                 const wrapper = document.getElementById(`floor-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`floor-type-${i}`)?.value || "";
                     const inputField = document.getElementById(`floor-input-${i}`);
                     const value = inputField?.value.trim() || "";
-                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
-
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value";
                     if (type && value) {
                         floorSummary += `- ${type} | ${label}: ${value}\n`;
                     }
@@ -1103,16 +1080,14 @@
             }
             if (floorSummary.trim() === "") floorSummary = "None\n";
 
-            // Walls Summary
             let wallSummary = "";
             for (let i = 1; i <= wallLineItemCount; i++) {
                 const wrapper = document.getElementById(`wall-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`wall-type-${i}`)?.value || "";
                     const inputField = document.getElementById(`wall-input-${i}`);
                     const value = inputField?.value.trim() || "";
-                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
-
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value";
                     if (type && value) {
                         wallSummary += `- ${type} | ${label}: ${value}\n`;
                     }
@@ -1120,16 +1095,14 @@
             }
             if (wallSummary.trim() === "") wallSummary = "None\n";
 
-            // Finish Carpentry Summary
             let finishCarpentrySummary = "";
             for (let i = 1; i <= finishCarpentryLineItemCount; i++) {
                 const wrapper = document.getElementById(`finish-carpentry-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`finish-carpentry-type-${i}`)?.value || "";
                     const inputField = document.getElementById(`finish-carpentry-input-${i}`);
                     const value = inputField?.value.trim() || "";
-                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
-
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value";
                     if (type && value) {
                         finishCarpentrySummary += `- ${type} | ${label}: ${value}\n`;
                     }
@@ -1137,16 +1110,14 @@
             }
             if (finishCarpentrySummary.trim() === "") finishCarpentrySummary = "None\n";
 
-            // Biowash/Extraction Summary
             let biowashExtractionSummary = "";
             for (let i = 1; i <= biowashExtractionLineItemCount; i++) {
                 const wrapper = document.getElementById(`biowash-extraction-item-wrapper-${i}`);
-                if (wrapper) { // Only include if the item still exists
+                if (wrapper) {
                     const type = document.getElementById(`biowash-extraction-type-${i}`)?.value || "";
                     const inputField = document.getElementById(`biowash-extraction-input-${i}`);
                     const value = inputField?.value.trim() || "";
-                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value"; // Get the label text
-
+                    const label = inputField?.previousElementSibling?.textContent.replace(':', '').trim() || "Value";
                     if (type && value) {
                         biowashExtractionSummary += `- ${type} | ${label}: ${value}\n`;
                     }
@@ -1154,43 +1125,120 @@
             }
             if (biowashExtractionSummary.trim() === "") biowashExtractionSummary = "None\n";
 
+            return `Room Name: ${roomName}\n\n` +
+                   `Equipment:\n${dehuSummary}\nAir Movers: ${airMovers}\n\n` +
+                   `Asbestos Testing:\nAsbestos test per sample (HMR ASBTS): ${asbestosSamples}\n\n` +
+                   `After Hours Work:\n${afterHoursSummary}\n` +
+                   `Ceiling Work:\n${ceilingSummary}\n` +
+                   `Floor Work:\n${floorSummary}\n` +
+                   `Wall Work:\n${wallSummary}\n` +
+                   `Finish Carpentry Work:\n${finishCarpentrySummary}\n` +
+                   `Biowash/Extraction Work:\n${biowashExtractionSummary}`;
+        }
 
-            const summary = `Client Name: ${clientName}
+        // Function to handle starting a new room
+        function startNewRoom() {
+            // 1. Save the current room's summary
+            const currentRoomSummary = generateCurrentRoomSummaryText();
+            // Only push if the current room has a name (basic validation)
+            if (document.getElementById("room-name")?.value.trim() !== "") {
+                allRoomSummaries.push(currentRoomSummary);
+            } else {
+                displayMessageBox("Please enter a Room Name before starting a new room.");
+                return; // Prevent resetting if no room name
+            }
 
-Travel - Trips & People: ${travelDetails}
-Kilometers from Office: ${travelKm}
 
-Room Name: ${roomName}
+            // 2. Reset room-specific inputs and dynamic item counters/containers
+            document.getElementById("room-name").value = "";
+            document.getElementById("air-movers").value = "";
+            document.getElementById("asbestos-samples").value = "";
 
-Debris Disposal: ${debrisDisposal} (${debrisQuantity})
+            // Clear and re-add dynamic items
+            clearDynamicContainers();
+            dehuCount = 0;
+            ceilingLineItemCount = 0;
+            afterHoursLineItemCount = 0;
+            floorLineItemCount = 0;
+            wallLineItemCount = 0;
+            finishCarpentryLineItemCount = 0;
+            biowashExtractionLineItemCount = 0;
 
-Equipment:
-Dehumidifiers:
-${dehuSummary}Air Movers: ${airMovers}
+            addDehumidifier();
+            addAfterHoursLineItem();
+            addCeilingLineItem();
+            addFloorLineItem();
+            addWallLineItem();
+            addFinishCarpentryLineItem();
+            addBiowashExtractionLineItem();
 
-Asbestos Testing:
-Asbestos test per sample (HMR ASBTS): ${asbestosSamples}
+            // 3. Navigate back to the Room page (Step 4)
+            document.querySelectorAll(".step").forEach(step => step.classList.remove("active"));
+            currentStepNum = 4;
+            document.getElementById("step-4").classList.add("active");
+            updateProgressIndicator();
 
-After Hours Work:
-${afterHoursSummary}
-Ceiling Work:
-${ceilingSummary}
-Floor Work:
-${floorSummary}
-Wall Work:
-${wallSummary}
-Finish Carpentry Work:
-${finishCarpentrySummary}
-Biowash/Extraction Work:
-${biowashExtractionSummary}`;
+            displayMessageBox("Room summary added! Please enter details for the next room.");
+        }
 
-            document.getElementById("summary-output").textContent = summary;
+        // Helper function to clear dynamic item containers
+        function clearDynamicContainers() {
+            document.getElementById("dehu-container").innerHTML = '<h3>Dehumidifiers</h3>';
+            document.getElementById("after-hours-items-container").innerHTML = '';
+            document.getElementById("ceiling-items-container").innerHTML = '';
+            document.getElementById("floor-items-container").innerHTML = '';
+            document.getElementById("wall-items-container").innerHTML = '';
+            document.getElementById("finish-carpentry-items-container").innerHTML = '';
+            document.getElementById("biowash-extraction-items-container").innerHTML = '';
+        }
+
+        // Main function to display the overall summary
+        function showSummary() {
+            // 1. Generate the summary for the *last* room currently being filled out
+            const finalRoomSummary = generateCurrentRoomSummaryText();
+
+            // Create a temporary array to hold all summaries for display
+            let summariesToDisplay = [...allRoomSummaries];
+
+            // Add the final room summary only if it's not a default/empty room
+            // Check if room name is provided for the final room
+            if (document.getElementById("room-name")?.value.trim() !== "") {
+                summariesToDisplay.push(finalRoomSummary);
+            }
+
+
+            const clientName = document.getElementById("client-name")?.value || "Not provided";
+            const travelDetails = document.getElementById("travel-details")?.value || "Not provided";
+            const travelKm = document.getElementById("travel-km")?.value || "Not provided";
+            const debrisDisposal = document.getElementById("debris-disposal")?.value || "Not provided";
+            const debrisQuantity = document.getElementById("debris-quantity")?.value || "Not provided";
+
+            let fullSummary = `Client Name: ${clientName}\n\n` +
+                              `Travel - Trips & People: ${travelDetails}\n` +
+                              `Kilometers from Office: ${travelKm}\n\n` +
+                              `Debris Disposal: ${debrisDisposal} (${debrisQuantity})\n\n`;
+
+            // Add the separator here, after debris and before room summaries
+            if (summariesToDisplay.length > 0) {
+                fullSummary += "=================================\n\n";
+                fullSummary += summariesToDisplay.join("\n\n=================================\n\n");
+            } else {
+                fullSummary += "No room details entered.";
+            }
+
+            document.getElementById("summary-output").textContent = fullSummary;
+
+            // 2. Navigate to the Summary page (Step 13)
+            document.querySelectorAll(".step").forEach(step => step.classList.remove("active"));
+            currentStepNum = 13;
+            document.getElementById("step-13").classList.add("active");
+            updateProgressIndicator();
         }
 
         // Copies the generated summary to the clipboard
         function copySummaryToClipboard() {
             const summaryText = document.getElementById("summary-output").textContent;
-            document.execCommand('copy'); // Fallback for navigator.clipboard.writeText
+            document.execCommand('copy');
             displayMessageBox("Summary copied to clipboard.");
         }
 
@@ -1283,6 +1331,7 @@ ${biowashExtractionSummary}`;
             // Summary action buttons
             document.getElementById('copy-summary').addEventListener('click', copySummaryToClipboard);
             document.getElementById('download-summary').addEventListener('click', downloadSummary);
+            document.getElementById('start-new-room').addEventListener('click', startNewRoom);
 
             // Initialize with one of each dynamic item and update progress on load
             addDehumidifier();
